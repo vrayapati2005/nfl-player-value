@@ -1,0 +1,16 @@
+# Data (raw downloads + DuckDB file) - too large for git
+data/
+
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/

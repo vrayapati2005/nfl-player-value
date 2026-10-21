@@ -1,0 +1,17 @@
+# Data access
+nflreadpy        # nflverse data (play-by-play, stats, rosters, contracts)
+
+# Storage + wrangling
+duckdb           # in-process SQL database
+pandas
+polars           # nflreadpy returns polars DataFrames
+pyarrow          # Parquet files + polars<->pandas conversion
+
+# Modeling + explanation
+scikit-learn
+xgboost
+shap
+
+# Plots + notebooks
+matplotlib
+jupyter
