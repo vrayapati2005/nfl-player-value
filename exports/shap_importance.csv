@@ -1,0 +1,96 @@
+feature,feature_name,position,mean_abs_shap_pp
+position_QB,Playing QB,all,0.0572
+position_RB,Playing RB,all,0.1403
+position_WR,Playing WR,all,0.1184
+position_TE,Playing TE,all,0.0941
+age,Age,all,0.6921
+w_pass_yds_pg,Passing yards per game,all,0.9785
+w_pass_td_pg,Passing TDs per game,all,0.9213
+w_cpoe,CPOE,all,0.1611
+w_rush_yds_pg,Rushing yards per game,all,0.2744
+w_carries_pg,Carries per game,all,0.4824
+w_rec_yds_pg,Receiving yards per game,all,0.3881
+w_rec_pg,Receptions per game,all,0.1688
+w_targets_pg,Targets per game,all,0.614
+w_epa_pg,EPA per game,all,0.1183
+w_success_rate,Success rate,all,0.0733
+w_epa_per_play,EPA per play,all,0.0308
+w_good_game_share,Share of good games,all,0.2482
+w_floor_yards,Weekly yardage floor,all,0.0748
+production_score,Production score,all,0.6597
+position_QB,Playing QB,QB,0.1558
+position_RB,Playing RB,QB,0.0834
+position_WR,Playing WR,QB,0.1458
+position_TE,Playing TE,QB,0.0847
+age,Age,QB,0.8975
+w_pass_yds_pg,Passing yards per game,QB,3.1322
+w_pass_td_pg,Passing TDs per game,QB,3.3125
+w_cpoe,CPOE,QB,1.0904
+w_rush_yds_pg,Rushing yards per game,QB,0.621
+w_carries_pg,Carries per game,QB,0.8379
+w_rec_yds_pg,Receiving yards per game,QB,0.474
+w_rec_pg,Receptions per game,QB,0.1249
+w_targets_pg,Targets per game,QB,0.5814
+w_epa_pg,EPA per game,QB,0.3416
+w_success_rate,Success rate,QB,0.0524
+w_epa_per_play,EPA per play,QB,0.034
+w_good_game_share,Share of good games,QB,0.1169
+w_floor_yards,Weekly yardage floor,QB,0.0493
+production_score,Production score,QB,0.6252
+position_QB,Playing QB,RB,0.0233
+position_RB,Playing RB,RB,0.4693
+position_WR,Playing WR,RB,0.211
+position_TE,Playing TE,RB,0.1028
+age,Age,RB,0.6625
+w_pass_yds_pg,Passing yards per game,RB,0.7741
+w_pass_td_pg,Passing TDs per game,RB,0.6735
+w_cpoe,CPOE,RB,0.0328
+w_rush_yds_pg,Rushing yards per game,RB,0.4363
+w_carries_pg,Carries per game,RB,0.8139
+w_rec_yds_pg,Receiving yards per game,RB,0.2576
+w_rec_pg,Receptions per game,RB,0.1245
+w_targets_pg,Targets per game,RB,0.4265
+w_epa_pg,EPA per game,RB,0.0975
+w_success_rate,Success rate,RB,0.0911
+w_epa_per_play,EPA per play,RB,0.0267
+w_good_game_share,Share of good games,RB,0.3293
+w_floor_yards,Weekly yardage floor,RB,0.1041
+production_score,Production score,RB,0.5826
+position_QB,Playing QB,WR,0.0462
+position_RB,Playing RB,WR,0.0541
+position_WR,Playing WR,WR,0.0922
+position_TE,Playing TE,WR,0.05
+age,Age,WR,0.7084
+w_pass_yds_pg,Passing yards per game,WR,0.593
+w_pass_td_pg,Passing TDs per game,WR,0.5045
+w_cpoe,CPOE,WR,0.0131
+w_rush_yds_pg,Rushing yards per game,WR,0.1353
+w_carries_pg,Carries per game,WR,0.2747
+w_rec_yds_pg,Receiving yards per game,WR,0.4871
+w_rec_pg,Receptions per game,WR,0.1965
+w_targets_pg,Targets per game,WR,0.7732
+w_epa_pg,EPA per game,WR,0.0911
+w_success_rate,Success rate,WR,0.0649
+w_epa_per_play,EPA per play,WR,0.0323
+w_good_game_share,Share of good games,WR,0.2948
+w_floor_yards,Weekly yardage floor,WR,0.0776
+production_score,Production score,WR,0.7085
+position_QB,Playing QB,TE,0.0505
+position_RB,Playing RB,TE,0.0395
+position_WR,Playing WR,TE,0.0697
+position_TE,Playing TE,TE,0.1653
+age,Age,TE,0.5788
+w_pass_yds_pg,Passing yards per game,TE,0.6283
+w_pass_td_pg,Passing TDs per game,TE,0.5312
+w_cpoe,CPOE,TE,0.0129
+w_rush_yds_pg,Rushing yards per game,TE,0.1835
+w_carries_pg,Carries per game,TE,0.3593
+w_rec_yds_pg,Receiving yards per game,TE,0.2858
+w_rec_pg,Receptions per game,TE,0.1835
+w_targets_pg,Targets per game,TE,0.5231
+w_epa_pg,EPA per game,TE,0.0603
+w_success_rate,Success rate,TE,0.0838
+w_epa_per_play,EPA per play,TE,0.0299
+w_good_game_share,Share of good games,TE,0.1735
+w_floor_yards,Weekly yardage floor,TE,0.0595
+production_score,Production score,TE,0.6616

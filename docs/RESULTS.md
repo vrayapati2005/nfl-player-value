@@ -140,6 +140,91 @@ worst BAL −$17.4M, JAX −$13.2M, BUF −$8.4M, PHI −$0.2M, DET +$3.3M.
 - Starting QBs in weak seasons (Russell Wilson 2024, Bryce Young 2025) look underpaid or high-surplus because the
   model prices role and volume.
 
+## Value model v2: per-game production (Phase 5)
+Source: `notebooks/04_value_v2.ipynb` (run 2026-10-24); SQL `sql/06`–`08`; code and weights in `src/model.py`.
+Exports: `exports/player_value.csv` (696 rows, 77 columns), `exports/team_value.csv` (64 team-seasons),
+`exports/shap_importance.csv` (95 rows). v1's exports moved to `exports/v1/`.
+
+**What changed from v1**
+- **Per-game features only**, as a 2-season weighted average (2/3 current, 1/3 prior; the prior season counts only with 4+ games).
+  - QB: passing yards, passing TDs, EPA, rushing yards per game, plus CPOE.
+  - RB/WR/TE: receiving and rushing yards, receptions, targets, carries and EPA per game, plus success rate and EPA/play.
+  - Removed: games played, snaps and snap %.
+- **Stats that belong to another position are set to 0** (QB receiving, non-QB passing).
+- **Consistency (RB/WR/TE):** the share of games over 50 receiving yards (WR/TE) or 60 scrimmage yards (RB), and the
+  25th-percentile weekly yards (the "floor").
+- **Production score (0–100):** a weighted average of within-position, within-season percentiles.
+  - QB: EPA/game 30%, passing yards/game 25%, passing TDs/game 20%, CPOE 15%, rushing yards/game 10%.
+  - RB/WR/TE: yards/game 35%, receptions/game 20%, consistency 25% (half good-game share, half floor), EPA/game 20%.
+- **Monotone constraints:** predicted pay can only rise with the production score and every production feature
+  (checked: bumping any of them by 1 SD never lowers a prediction).
+- **Fair value is floored at 0.3% of cap**, the 1st percentile of veteran pay in training (about the veteran minimum).
+
+New tables: `player_game_box` 69,354 rows · `player_season_pergame` 4,407 · `player_availability` 15,661.
+
+**v1 vs v2: test set 2024–2025, 413 veteran player-seasons.** Same rows, the same contract correction and the
+same floor for every model.
+
+| Model | R² | MAE (pp) | R², unseen contracts | MAE, unseen contracts (pp) | MAE over 5 seeds (pp) |
+|---|---:|---:|---:|---:|---|
+| Position average | 0.353 | 3.60 | 0.242 | 3.28 | – |
+| Linear v2 | 0.702 | 2.07 | 0.690 | 1.75 | – |
+| XGBoost v1 | 0.705 | 1.99 | 0.670 | 1.77 | 2.002–2.052 |
+| **XGBoost v2** | **0.753** | **1.79** | **0.692** | **1.63** | **1.785–1.808** |
+
+At the 2024 cap, v2's MAE is about $4.6M (v1: $5.1M).
+
+| Position | v1 R² / MAE | v2 R² / MAE |
+|---|---|---|
+| QB | 0.417 / 5.38 | **0.516 / 4.77** |
+| RB | **0.440 / 1.01** | 0.366 / 1.07 |
+| WR | 0.712 / 1.74 | **0.762 / 1.56** |
+| TE | 0.508 / 1.12 | **0.640 / 0.94** |
+
+v2 train / CV / test MAE: 1.20 / 1.74 / 1.79 pp. v1 was 0.83 / 1.94 / 2.04, so v2 overfits less.
+v2 settings: `max_depth=4, learning_rate=0.03, n_estimators=500, min_child_weight=1`.
+
+**SHAP (mean |SHAP|, test set, pp of cap):** passing yards/game 1.10, passing TDs/game 1.06, production score 0.66,
+targets/game 0.64, carries/game 0.50, age 0.47, receiving yards/game 0.40.
+
+**Labels.** Both are ranked within position × pay tier: top/bottom 15% and at least $2.5M.
+- Season label (per-game fair value): 47 Overpaid, 313 Fair, 52 Underpaid, 1 Limited sample. A veteran with fewer than
+  6 games gets "Limited sample" instead of Overpaid/Underpaid: a sample-size rule, not an injury penalty (the fair
+  value still ignores missed games). 7 veterans played under 6 games; only Carson Wentz 2025 (5 games, would have been
+  Underpaid by $29.9M) changed label.
+- 3-year label (fair value × availability over the current and two prior seasons): 48 Overpaid, 317 Fair, 48 Underpaid.
+  No game-count rule here; availability already accounts for missed games.
+- Durability concern (availability under 75% in 2+ of the last 3 seasons): 96 veteran player-seasons.
+
+**Eye test, v1 → v2 (season / 3-year)**
+- Amon-Ra St. Brown 2024: Overpaid → Fair / Fair
+- Lamar Jackson 2025: Overpaid → Fair / Fair
+- Josh Allen 2024: Fair → Fair / Fair
+- Josh Allen 2025: Overpaid → Fair / Fair
+- Justin Jefferson 2024: Fair → Fair / Fair
+- Saquon Barkley 2024: Fair → Fair / Fair
+- Nico Collins 2024 (durability flag): Fair → Fair / Fair
+- Kyler Murray 2025 (durability flag, 5 games): Fair → Fair / **Overpaid**
+
+**Standouts (season label, $M gap)**
+- Overpaid: Deshaun Watson 2024 (+47.6), Trevor Lawrence 2024 (+39.4), Kirk Cousins 2025 (+33.5),
+  Tua Tagovailoa 2025 (+27.4), Dak Prescott 2024 (+21.8).
+- Underpaid: Russell Wilson 2024 (−48.8), Joe Flacco 2024 (−37.1), Daniel Jones 2025 (−19.3),
+  Baker Mayfield 2024 (−16.6), Aaron Rodgers 2025 (−15.3).
+- Rookie surplus: Brock Purdy 2024 ($53.7M), Drake Maye 2025 ($51.2M), Bo Nix 2025 ($49.9M),
+  Jayden Daniels 2024 ($40.2M), Puka Nacua 2025 ($31.1M).
+
+**Teams, 2024+2025 net value (season label)**
+- Best: DEN +$116.9M, PIT +$108.7M, IND +$100.5M, NO +$93.8M, TB +$79.6M.
+- Worst: CLE −$41.1M, MIA −$14.0M, PHI −$10.2M, JAX −$3.8M, CAR +$4.1M.
+- On the 3-year label, teams with injured starters drop: NYJ +7.7 → −35.0, IND +100.5 → +41.3, ARI +35.4 → −8.4.
+
+**Known weaknesses**
+- RB accuracy dropped compared with v1.
+- Top-of-market contracts are still compressed (Jefferson 2024 worth 9.5% vs paid 13.7%; Goff 2025 14.0% vs 20.8%).
+- The season label treats short QB stints as full per-game value: Flacco 2024 (8 games) is still Underpaid. The 6-game
+  rule only catches very short stints like Wentz 2025; the 3-year label tempers the rest.
+
 ## Limitations
 - **Reproducibility fix (found in Phase 5).** XGBoost's row subsampling depends on row order, and SQL tables have no
   guaranteed order, so rebuilding the database changed the model (test MAE moved between about 2.04 and 2.08 pp).
@@ -151,6 +236,8 @@ worst BAL −$17.4M, JAX −$13.2M, BUF −$8.4M, PHI −$0.2M, DET +$3.3M.
   team (e.g. DK Metcalf's 2022 Seattle extension is labeled "Steelers").
 - **Daniel Jones 2024 is corrected in Phase 4** via `CONTRACT_OVERRIDES` in `src/model.py` (Giants 2023 deal, 17.8%).
   The Phase 3 test metrics include his uncorrected row (1 of 413); excluding it, test MAE is 2.00 pp.
+- **Availability counts games played, not injuries:** a healthy backup who is active but doesn't play counts as
+  unavailable. Seasons on a practice squad, cut or out of the league don't count.
 - **Team totals cover only QB/RB/WR/TE with 200+ snaps**, and a traded player counts for the team he played the most snaps for.
 - **APY is measured at signing**, not the actual cap hit in each season.
 - **The model compresses extreme salaries** (see Phase 3), so raw residuals favor cheap players and penalize stars.

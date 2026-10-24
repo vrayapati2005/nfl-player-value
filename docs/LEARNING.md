@@ -210,3 +210,39 @@ Template for new entries:
 **What it is:** Reading the output lists and asking "does this make sense to someone who knows football?" before trusting them.
 **Why we use it here:** The first version labeled the 2024 MVP as overpaid and a QB with 5 games and −19.5 EPA as underpaid by $18M. Both pointed to real method problems (residual bias, small samples), which I fixed and measured. The remaining oddities are explained by the model itself: it prices role and volume more than efficiency.
 **Interview version:** "I check results against domain knowledge. When a list fails the eye test, I trace it to a cause and either fix the method or document the limitation."
+
+## Per-game normalization
+**Phase:** 5 – Value model v2
+**What it is:** Dividing production by games played (yards per game, EPA per game) instead of using season totals.
+**Why we use it here:** Season totals mix two things: how good a player is when he plays, and how often he plays. v1 learned from totals and snap %, so an injury looked like bad production. Per-game stats measure quality on its own, and availability is handled separately and on purpose (the 3-year label). I also blend in the prior season (2/3 current, 1/3 prior) to steady small samples. The prior season only counts with 4+ games, because Aaron Rodgers' 1-game 2023 season was dragging his average down.
+**Interview version:** "I separated how good a player is per game from how often he's available, so injuries don't masquerade as poor play."
+
+## Consistency metrics
+**Phase:** 5 – Value model v2
+**What it is:** Two ways to describe how reliable a player's weekly output is. The *share of good games* is the fraction of games over a threshold (50 receiving yards for WR/TE, 60 scrimmage yards for RB). The *floor* is the 25th-percentile weekly yards, roughly "a bad week for him".
+**Why we use it here:** Two receivers with 70 yards per game can be very different: one gets 70 every week, the other alternates 140 and 0. Teams value the steady one more. I counted games with no box-score line as zero, so quiet games couldn't vanish and inflate consistency.
+**Interview version:** "Averages hide volatility, so I added a hit rate and a 25th-percentile floor to capture how dependable a player is week to week."
+
+## Composite production score
+**Phase:** 5 – Value model v2
+**What it is:** A 0–100 score built by converting each stat to a percentile within the player's position and season, then taking a weighted average. QB: EPA/game 30%, passing yards/game 25%, passing TDs/game 20%, CPOE 15%, rushing yards/game 10%. RB/WR/TE: yards/game 35%, receptions/game 20%, consistency 25%, EPA/game 20%. The weights are constants in `src/model.py`, so they're easy to change.
+**Why we use it here:** Percentiles put very different stats (yards, TDs, CPOE) on one scale. Computing them within a season means a season is only compared with its own season, so no information leaks from other years. The score gives the model and the dashboard one readable number.
+**Interview version:** "I built a transparent, position-specific production index from within-season percentiles, with weights anyone can change."
+
+## Monotone constraints
+**Phase:** 5 – Value model v2
+**What it is:** A setting in XGBoost that forces predictions to only move in one direction as a feature increases. Here: more production can never lower predicted pay.
+**Why we use it here:** v1 learned a quirk where very high EPA per play *lowered* predicted pay, because extreme rates came from low-volume backups. That makes no football sense. The constraint rules it out, and acts as regularization: v2's train/test gap shrank (1.20 → 1.79 pp vs v1's 0.83 → 2.04). One side effect: very poor production could extrapolate below zero, so fair value is floored at 0.3% of cap (about the veteran minimum).
+**Interview version:** "I added domain knowledge as a constraint, so pay can only increase with production. It removed a nonsense pattern and reduced overfitting."
+
+## Availability adjustment
+**Phase:** 5 – Value model v2
+**What it is:** Availability = games played ÷ games possible. The 3-year value multiplies a player's per-game fair value by his availability over the current and two prior seasons. A "durability concern" flag marks players under 75% availability in at least 2 of those seasons.
+**Why we use it here:** There are two honest questions. *How good is he when he plays?* That's the season label, where injury has no effect. *What does a team actually get for the money?* That's the 3-year label. Kyler Murray 2025 shows the difference: Fair per game, but Overpaid once five games played and his injury history are counted. Seasons out of the league or on a practice squad aren't counted, because they say nothing about health.
+**Interview version:** "I kept quality and availability separate, then combined them explicitly: per-game value times a 3-year availability rate, plus a durability flag."
+
+## Reproducibility and random seeds
+**Phase:** 5 – Value model v2
+**What it is:** Making sure re-running the code gives the same numbers, and knowing how much results move when only the randomness changes.
+**Why we use it here:** XGBoost samples rows, so its results depend on row order, and SQL tables have no guaranteed order. Rebuilding the database changed v1's labels. I fixed it by sorting when loading, re-ran every phase, and confirmed v1's export is identical after a full rebuild. Retraining with 5 seeds showed test MAE varies by about 0.05 pp, so v2's 0.2 pp improvement over v1 is real, not luck.
+**Interview version:** "I pinned the data order so results are reproducible, and used seed variation to tell a real improvement from noise."
