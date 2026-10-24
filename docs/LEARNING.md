@@ -114,3 +114,69 @@ Template for new entries:
 **What it is:** The same chart repeated in a grid, one panel per group, instead of one crowded chart with many colors.
 **Why we use it here:** QB, RB, WR and TE have very different scales (QBs earn up to ~25% of the cap, RBs ~8%), so one panel per position keeps each readable, and color is saved for one comparison: rookie vs veteran contract.
 **Interview version:** "I faceted by position because the scales differ by an order of magnitude, and used color only for the one comparison that mattered."
+
+## Train only on veteran contracts
+**Phase:** 3 – Model
+**What it is:** Rookie contracts are set by a fixed pay scale based on draft slot, not negotiated on performance.
+**Why we use it here:** We want the model to learn what the *market* pays for production. If rookie deals were in the training data, the model would learn "elite production can cost 1% of the cap", which is a rule of the league's labor agreement, not a market price. We learn the market rate from veterans, then apply it to everyone in Phase 4.
+**Interview version:** "Rookie pay is fixed by the CBA, so I trained only on negotiated veteran deals to learn the market rate for production."
+
+## Time-based train/test split
+**Phase:** 3 – Model
+**What it is:** Train on earlier seasons (2019–2023), test on later ones (2024–2025), instead of shuffling rows at random.
+**Why we use it here:** The model will be used on future seasons, so it should be tested that way. A random split would put a player's 2022 season in training and his near-identical 2023 season (same contract!) in test, making the score look better than it is.
+**Interview version:** "I split by season so the test mimics real use: predicting seasons the model has never seen."
+
+## Time-aware cross-validation (expanding window)
+**Phase:** 3 – Model
+**What it is:** To tune settings without touching the test set, the training seasons are split into folds that respect time: train 2019–20 → check on 2021; train 2019–21 → check on 2022; train 2019–22 → check on 2023.
+**Why we use it here:** Ordinary k-fold CV shuffles seasons together and would leak the future into the past. Our CV error (1.93 pp) ended up close to the real test error (2.07 pp), which shows the CV setup was a faithful rehearsal.
+**Interview version:** "I tuned hyperparameters with expanding-window CV on training seasons only; the test set was used once, at the end."
+
+## Baseline model
+**Phase:** 3 – Model
+**What it is:** The simplest reasonable model, used as a yardstick. We used two: "predict the position's average pay" and a linear regression.
+**Why we use it here:** A score like R² 0.67 means nothing alone. Position average alone already gets 0.34, so position explains a big chunk "for free". XGBoost has to beat both baselines to justify its complexity.
+**Interview version:** "I always fit baselines first: they show how much the fancy model actually adds."
+
+## One-hot encoding
+**Phase:** 3 – Model
+**What it is:** Turning a category like position into separate 0/1 columns (position_QB, position_RB, ...).
+**Why we use it here:** Models need numbers, and "QB = 1, RB = 2" would invent a fake order. For linear regression we drop one column (QB becomes the reference), because all four columns plus an intercept are perfectly redundant.
+**Interview version:** "I one-hot encoded position, dropping a reference level for the linear model to avoid perfect collinearity."
+
+## R² and MAE
+**Phase:** 3 – Model
+**What it is:** MAE (mean absolute error) is the average size of a miss, here in percentage points of cap. R² is the share of the variation in pay the model explains (1 = perfect, 0 = no better than predicting the average, negative = worse).
+**Why we use it here:** MAE is easy to explain: 2.07 pp of a $255.4M cap is about $5.3M per player. R² is useful for comparing, but overall R² is inflated when groups differ a lot (QBs vs everyone), so we also report R² within each position.
+**Interview version:** "MAE is my headline because it converts to dollars: the model misses by about $5.3M on average."
+
+## XGBoost (gradient-boosted trees)
+**Phase:** 3 – Model
+**What it is:** Many small decision trees built one after another, each one correcting the mistakes of the ones before it.
+**Why we use it here:** Pay isn't a straight line in production. It jumps for starters, and the same stat means different things by position and age. Trees capture these thresholds and interactions automatically; linear regression can't.
+**Interview version:** "XGBoost handles non-linear effects and interactions, like EPA mattering more for a QB, that a linear model can't."
+
+## Overfitting
+**Phase:** 3 – Model
+**What it is:** A model that fits its training data much better than new data has partly memorized noise.
+**Why we use it here:** XGBoost's training error (0.85 pp) is far below its test error (2.07 pp), so it memorizes training rows, helped by multi-year contracts repeating across seasons. The reassuring part: CV error and test error agree, so the error we report is honest.
+**Interview version:** "The gap between train and test error shows memorization, but CV and test errors agreed, so the reported performance is trustworthy."
+
+## Leakage
+**Phase:** 3 – Model
+**What it is:** When information about the answer sneaks into the model's inputs or into the test set, making results look better than they'd be in real use.
+**Why we use it here:** Two checks. (1) No contract fields are features. (2) 17% of test rows share a contract with training rows, so I also scored only unseen contracts: XGBoost MAE 1.85 pp, R² 0.621. Reporting both numbers is the honest way to handle it.
+**Interview version:** "I checked for leakage in features and in the split itself, and reported a stricter score on contracts the model had never seen."
+
+## Regression toward the mean
+**Phase:** 3 – Model
+**What it is:** Models trained to minimize average error pull extreme predictions toward the middle.
+**Why we use it here:** Our model predicts 14.7% on average for players actually paid 15%+ of the cap, and 2.0% for players paid under 2%. So in Phase 4, stars will look overpaid and minimum-salary players underpaid partly *because of the model*, not reality. We'll need to compare players within pay tiers or positions.
+**Interview version:** "The model compresses the extremes, so I didn't read raw residuals at face value; I compared like with like."
+
+## SHAP values
+**Phase:** 3 – Model
+**What it is:** A method that splits one prediction into contributions from each feature, starting from the average prediction. The contributions add up exactly to the prediction. The summary (beeswarm) plot shows every player's contributions for every feature; a waterfall shows one player's breakdown.
+**Why we use it here:** It shows *why* the model values a player. Ours says the market pays for role and volume (snap %, being the starting QB, target share) far more than per-play efficiency. It also exposed a quirk: very high EPA/play slightly lowers predicted pay, because in the data extreme rates mostly come from low-volume backups.
+**Interview version:** "SHAP showed the model values role and volume over efficiency, which matches how NFL teams actually pay. But SHAP explains the model, not causation: usage is partly a consequence of pay."
