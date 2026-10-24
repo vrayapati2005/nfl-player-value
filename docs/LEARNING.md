@@ -246,3 +246,9 @@ Template for new entries:
 **What it is:** Making sure re-running the code gives the same numbers, and knowing how much results move when only the randomness changes.
 **Why we use it here:** XGBoost samples rows, so its results depend on row order, and SQL tables have no guaranteed order. Rebuilding the database changed v1's labels. I fixed it by sorting when loading, re-ran every phase, and confirmed v1's export is identical after a full rebuild. Retraining with 5 seeds showed test MAE varies by about 0.05 pp, so v2's 0.2 pp improvement over v1 is real, not luck.
 **Interview version:** "I pinned the data order so results are reproducible, and used seed variation to tell a real improvement from noise."
+
+## Colorblind-safe palettes and redundant encoding
+**Phase:** 6 – Tableau dashboard
+**What it is:** About 1 in 12 men has some color-vision deficiency, most often red–green. A colorblind-safe palette (here, Okabe-Ito) picks colors that stay distinguishable under the common types. *Redundant encoding* means color is never the only cue: labels also get a shape and a legend.
+**Why we use it here:** The dashboard's key message, Overpaid vs Underpaid, is carried by color. A red/green scheme would hide it from many viewers, so Overpaid is vermillion, Underpaid is blue, Fair is neutral gray, and each label also has its own shape on the scatter.
+**Interview version:** "I chose an Okabe-Ito palette, checked every color pair with a colorblind simulator, and added shapes so the chart still works in grayscale."
