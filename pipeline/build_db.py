@@ -19,6 +19,7 @@ TABLES = {
     "snap_counts": "snap_counts.parquet",
     "rosters": "rosters.parquet",
     "contracts": "contracts.parquet",
+    "players": "players.parquet",
 }
 
 
