@@ -180,3 +180,33 @@ Template for new entries:
 **What it is:** A method that splits one prediction into contributions from each feature, starting from the average prediction. The contributions add up exactly to the prediction. The summary (beeswarm) plot shows every player's contributions for every feature; a waterfall shows one player's breakdown.
 **Why we use it here:** It shows *why* the model values a player. Ours says the market pays for role and volume (snap %, being the starting QB, target share) far more than per-play efficiency. It also exposed a quirk: very high EPA/play slightly lowers predicted pay, because in the data extreme rates mostly come from low-volume backups.
 **Interview version:** "SHAP showed the model values role and volume over efficiency, which matches how NFL teams actually pay. But SHAP explains the model, not causation: usage is partly a consequence of pay."
+
+## Contract gap (a residual)
+**Phase:** 4 – Value
+**What it is:** Actual pay minus the model's predicted pay for the same production. In modeling terms it's the residual: the part of pay the production doesn't explain.
+**Why we use it here:** It's the project's answer. Positive = paid more than the market rate for that production (overpaid); negative = paid less (underpaid). Converted to dollars with each season's salary cap so it's easy to read.
+**Interview version:** "Value is the residual: what a player is paid minus what the market typically pays for his production."
+
+## Comparing within groups (position × pay tier)
+**Phase:** 4 – Value
+**What it is:** Ranking a number only against similar cases (same position, similar salary) instead of against everyone.
+**Why we use it here:** Regression residuals always correlate with the actual value: the highest-paid players will always have the most positive gaps, just because of how regression works. Ranking within position alone still flagged 35% of the highest-paid third (including Josh Allen's MVP season) and 0% of the lowest third. Ranking within pay tiers asks "among players paid like him, whose production falls shortest?" and evened the flag rates out (13% and 15% in the middle and top tiers). I also tried a boundary-free version (compare to the 15 nearest-paid players) and it did worse, so I kept the tiers and documented their edge case (Allen 2025).
+**Interview version:** "Raw residuals are biased by the target itself, so I compared players to others paid similarly, and checked the fix with flag rates by pay tier."
+
+## Surplus value of rookie contracts
+**Phase:** 4 – Value
+**What it is:** Predicted market value minus actual pay, for players on rookie deals.
+**Why we use it here:** Rookie pay is fixed by draft slot, so "underpaid" isn't a meaningful label for them. Surplus measures how much cheap production the rookie scale gives a team. Bo Nix's 2025 season was worth about $50M more than his rookie deal.
+**Interview version:** "For rookie deals I report surplus value, the market value of the production minus the fixed salary, instead of calling them underpaid."
+
+## Documented manual overrides
+**Phase:** 4 – Value
+**What it is:** Correcting a known data error by hand, in one visible place, with the reason written next to it.
+**Why we use it here:** Daniel Jones 2024 was matched to a Vikings deal signed after the Giants released him. A blanket rule would have broken other correct rows, so I corrected the one material case in `CONTRACT_OVERRIDES`. Anyone reading the code sees exactly what changed and why, and the Tableau export carries an `override_reason` column.
+**Interview version:** "When a rule can't be fixed generally, I fix the specific case transparently: one dictionary, with the reason, and flagged in the output."
+
+## The eye test (sanity-checking results)
+**Phase:** 4 – Value
+**What it is:** Reading the output lists and asking "does this make sense to someone who knows football?" before trusting them.
+**Why we use it here:** The first version labeled the 2024 MVP as overpaid and a QB with 5 games and −19.5 EPA as underpaid by $18M. Both pointed to real method problems (residual bias, small samples), which I fixed and measured. The remaining oddities are explained by the model itself: it prices role and volume more than efficiency.
+**Interview version:** "I check results against domain knowledge. When a list fails the eye test, I trace it to a cause and either fix the method or document the limitation."
